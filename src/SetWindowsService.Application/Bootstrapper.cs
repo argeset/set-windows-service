@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.ServiceModel;
+using System.Configuration;
 
 using Castle.Facilities.Logging;
 using Castle.Facilities.WcfIntegration;
@@ -8,7 +9,6 @@ using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 
 using SetWindowsService.Business;
-
 namespace SetWindowsService.Application
 {
     public class Bootstrapper
@@ -30,8 +30,19 @@ namespace SetWindowsService.Application
                 SendTimeout = new TimeSpan(0, 30, 0)
             };
 
+            var netTcpBinding = new NetTcpBinding
+            {
+                PortSharingEnabled = true,
+                Security = new NetTcpSecurity { Mode = SecurityMode.None },
+                MaxBufferSize = 67108864,
+                MaxReceivedMessageSize = 67108864,
+                TransferMode = TransferMode.Streamed,
+                ReceiveTimeout = new TimeSpan(0, 30, 0),
+                SendTimeout = new TimeSpan(0, 30, 0)
+            };
+
             Container.Register(
-               Component.For<ExceptionInterceptor>(),
+               Component.For<ExceptionInterceptor>().LifestyleTransient(),
 
                Types.FromAssemblyNamed("SetWindowsService.Business")
                     .Pick()
@@ -39,10 +50,15 @@ namespace SetWindowsService.Application
                     .Configure(
                         configurer =>
                         configurer.Named(configurer.Implementation.Name)
+                                  .Interceptors<ExceptionInterceptor>()
                                   .LifestyleSingleton()
-                                  .AsWcfService(new DefaultServiceModel().AddEndpoints(WcfEndpoint.BoundTo(netNamedPipeBinding)
-                                                                         .At(string.Format("net.pipe://localhost/{0}", configurer.Implementation.Name))).PublishMetadata()))
-                    .WithService.Select((type, baseTypes) => type.GetInterfaces().Where(i => i.IsDefined(typeof(ServiceContractAttribute), true))));
+                                  .AsWcfService(new DefaultServiceModel().AddEndpoints(
+                                                    //WcfEndpoint.BoundTo(netTcpBinding)
+                                                    //            .At(string.Format("net.tcp://localhost:{1}/{0}", configurer.Implementation.Name, ConfigurationManager.AppSettings["Port"])),
+                                                    WcfEndpoint.BoundTo(netNamedPipeBinding)
+                                                                .At(string.Format("net.pipe://localhost/{0}", configurer.Implementation.Name)))
+                                  .PublishMetadata()))                                 
+                                  .WithService.Select((type, baseTypes) => type.GetInterfaces().Where(i => i.IsDefined(typeof(ServiceContractAttribute), true))));
         }
     }
 }

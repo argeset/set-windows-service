@@ -27,7 +27,7 @@ namespace SetWindowsService.Application
             }
             catch (Exception ex)
             {
-                Logger.Fatal(string.Format("Error Occurred : {0} || {1}", ex.Message, CreateInvocationLogString(invocation)));
+                Logger.Error(string.Format("{0} || {1}", ex.Message, CreateInvocationLogString(invocation)));
             }
         }
 

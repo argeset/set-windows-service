@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Configuration;
 using System.Linq;
 using System.ServiceModel;
-using System.Configuration;
 
 using Castle.Facilities.Logging;
 using Castle.Facilities.WcfIntegration;
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 
-using SetWindowsService.Business;
+using SetWindowsService.Application.Business;
+
 namespace SetWindowsService.Application
 {
     public class Bootstrapper
@@ -44,8 +45,7 @@ namespace SetWindowsService.Application
             Container.Register(
                Component.For<ExceptionInterceptor>().LifestyleTransient(),
 
-               Types.FromAssemblyNamed("SetWindowsService.Business")
-                    .Pick()
+               Types.FromThisAssembly().Pick()
                     .If(type => type.GetInterfaces().Any(i => i.IsDefined(typeof(ServiceContractAttribute), true) && i.Name != typeof(BaseService).Name))
                     .Configure(
                         configurer =>
@@ -53,11 +53,11 @@ namespace SetWindowsService.Application
                                   .Interceptors<ExceptionInterceptor>()
                                   .LifestyleSingleton()
                                   .AsWcfService(new DefaultServiceModel().AddEndpoints(
-                                                    //WcfEndpoint.BoundTo(netTcpBinding)
-                                                    //            .At(string.Format("net.tcp://localhost:{1}/{0}", configurer.Implementation.Name, ConfigurationManager.AppSettings["Port"])),
+                                                    WcfEndpoint.BoundTo(netTcpBinding)
+                                                                .At(string.Format("net.tcp://localhost:{1}/{0}", configurer.Implementation.Name, ConfigurationManager.AppSettings["Port"])),
                                                     WcfEndpoint.BoundTo(netNamedPipeBinding)
                                                                 .At(string.Format("net.pipe://localhost/{0}", configurer.Implementation.Name)))
-                                  .PublishMetadata()))                                 
+                                  .PublishMetadata()))
                                   .WithService.Select((type, baseTypes) => type.GetInterfaces().Where(i => i.IsDefined(typeof(ServiceContractAttribute), true))));
         }
     }

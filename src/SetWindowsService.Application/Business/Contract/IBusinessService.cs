@@ -3,7 +3,7 @@
 namespace SetWindowsService.Application.Business.Contract
 {
     [ServiceContract]
-    public interface IBussinessService
+    public interface IBusinessService
     {
         [OperationContract]
         void DoWork();
